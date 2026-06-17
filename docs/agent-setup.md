@@ -38,8 +38,8 @@ To discover available model IDs and choose which model each agent uses, see [`do
 
 Codex and Claude Code need different local routing surfaces when using Virtuals-hosted models:
 
-- Codex custom providers call `/v1/responses`; use [`utilities/model-routing/codex-virtuals-proxy`](../utilities/model-routing/codex-virtuals-proxy).
-- Claude Code calls Anthropic-compatible `/v1/messages`; use [`utilities/model-routing/claude-virtuals-router`](../utilities/model-routing/claude-virtuals-router) with `claude-code-router`.
+- Codex custom providers call `/v1/responses`; use [`utilities/model-routing/codex-virtuals-proxy`](../utilities/model-routing/codex-virtuals-proxy) (requires Node.js 22+).
+- Claude Code calls Anthropic-compatible `/v1/messages`; use [`utilities/model-routing/claude-virtuals-router`](../utilities/model-routing/claude-virtuals-router) with [`@musistudio/claude-code-router`](https://github.com/musistudio/claude-code-router) (`ccr`).
 
 For Codex, use the config helper instead of hand-editing `~/.codex/config.toml`:
 
@@ -77,11 +77,15 @@ If no restore state exists, remove the Virtuals provider and Virtuals routes:
 scripts/configure-claude-virtuals.mjs default
 ```
 
-Validate the active router config before starting Claude Code:
+Export `VIRTUALS_API_KEY` in each shell before starting the Codex proxy and before running `ccr restart`/`ccr code` — each process reads the variable from its own launch environment. Changing the variable in one shell does not affect the other, and changing it after a daemon has started requires restarting that daemon.
+
+Validate the router config file before starting Claude Code:
 
 ```bash
 scripts/configure-claude-virtuals.mjs check
 ```
+
+`check` validates the config file and confirms `VIRTUALS_API_KEY` is set in the shell running `check`. It does not inspect the running `ccr` daemon — if you update the key, run `ccr restart` so the daemon re-reads the environment.
 
 Keep shared utilities in `utilities/` so setup docs, skills, and examples evolve together.
 

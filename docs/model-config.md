@@ -37,7 +37,7 @@ Codex reads `~/.codex/config.toml`. The model is the top-level `model` key,
 which must point at a provider block:
 
 ```toml
-model = "claude-opus-4-8"        # any id from step 1
+model = "gpt-5.5"               # Codex-supported id; proxy maps this to the Virtuals upstream id
 model_provider = "virtuals_proxy"
 
 [model_providers.virtuals_proxy]
@@ -45,6 +45,14 @@ name = "Virtuals via local Responses proxy"
 base_url = "http://127.0.0.1:8787/v1"
 wire_api = "responses"
 ```
+
+> **Note:** Codex validates the configured model id against ChatGPT/Codex-supported names
+> when you sign in with a ChatGPT account. Use `gpt-5.5` here — the local proxy translates
+> it to Virtuals' upstream id `openai-gpt-55` when forwarding requests. The `/v1/models`
+> discovery in step 1 lists Virtuals model ids and applies to Claude Code routes only; for
+> Codex, keep `gpt-5.5` in the config and the proxy handles translation. See
+> [`utilities/model-routing/codex-virtuals-proxy`](../utilities/model-routing/codex-virtuals-proxy)
+> for the alias mapping.
 
 Prefer the helper over hand-editing — it preserves and can restore your
 previous model/provider:
@@ -102,7 +110,7 @@ must agree:
 
 ### Set the model on a route
 
-There are two ways. Either edits the same file —
+There are two ways. Both edit the same file —
 `~/.claude-code-router/config.json`.
 
 **Option A — helper flags (preferred).** Run from the repo root. The helper
@@ -138,13 +146,25 @@ Whichever route you edit, the model id must also be present in
 ### Other helper commands
 
 ```bash
-scripts/configure-claude-virtuals.mjs check      # validate the active config
+scripts/configure-claude-virtuals.mjs check      # validate config + current-shell VIRTUALS_API_KEY
 scripts/configure-claude-virtuals.mjs restore    # back to previous provider/routes
 scripts/configure-claude-virtuals.mjs default    # remove Virtuals routes
 ```
 
-Run `check` before starting Claude Code, then restart the router after any
-config change (`ccr restart`, or `ccr stop && ccr code`).
+`ccr` is the CLI for [`@musistudio/claude-code-router`](https://github.com/musistudio/claude-code-router).
+After any config change, run `ccr restart` so the daemon re-reads the updated file.
+
+> **Note on `check`:** `check` validates the config file and confirms `VIRTUALS_API_KEY` is
+> set in the shell running `check` — it does **not** inspect the running `ccr` daemon. If you
+> update or unset the key, run `ccr restart` so the daemon picks up the new value; `check`
+> passing in the current shell does not guarantee the daemon has the right key.
+
+Pass `-h` or `--help` to either configure script to see all supported flags:
+
+```bash
+scripts/configure-claude-virtuals.mjs --help
+scripts/configure-codex-virtuals.mjs --help
+```
 
 ## 4. Confirm traffic reaches Virtuals
 
